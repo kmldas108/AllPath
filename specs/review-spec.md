@@ -1,4 +1,4 @@
-# Samaveshi v3 — the teacher review gate and the on-device profile
+# AllPath v3 — the teacher review gate and the on-device profile
 
 Status: **draft for Kamal's review.** Drafted 2026-10-02 from `Samaveshi_v3_build_guide.docx`
 (Steps 3 and 4). The guide names a companion file `Samaveshi_v3_spec_and_process.md` to copy
@@ -260,3 +260,31 @@ revisiting after the evaluation, if token cost turns out to matter.
 
 **Open:** a size cap and an expiry. I propose 200 entries, evicting the least recently used,
 and no time-based expiry while the model is pinned. Say if you would rather have a date limit.
+
+### 10d. Renamed to AllPath — 2026-10-03
+
+The app is **AllPath**, tagline **"One lesson, no one left out"**. Renamed across the UI, the
+page title and metadata, the package name, the on-device storage keys, and these specs.
+
+Left as they were, deliberately:
+
+- **Real filenames** keep their names: `Samaveshi_v3_build_guide.docx`,
+  `Samaveshi_v3_spec_and_process.md`, `samaveshi-learning-for-all.zip`.
+- **`features/analogy_engine.feature` and `skills/easy_read/SKILL.md`** still say Samaveshi.
+  Both are in the must-not-change list (C6), and SKILL.md is a prompt harness — editing it
+  would change model output.
+- **The duplicate tree under `components/`** is untouched, as everywhere else.
+- **Git history and the v2 deployment** are unchanged. v2 shipped as Samaveshi; that is a fact
+  about the past and the paper should say so when comparing versions.
+
+**One change here does alter model output.** The identity line in `buildContextPrompt`
+(`server.ts:83`) now reads "You are AllPath, a Universal Learning Bridge." A prompt change is
+a change to the system being measured, so it has to land **before** the Step 10 freeze and
+before any eval run — which it does. Nothing has been measured yet, so nothing is invalidated.
+If any eval or teacher session had already been run, those results would describe Samaveshi
+and would have to be rerun.
+
+**Storage keys moved** from `samaveshi.*` to `allpath.*`, and the IndexedDB database from
+`samaveshi` to `allpath`. No migration is needed: v2 stored nothing on the device at all (see
+specs/current-state.md), so there is no data to orphan. Had v2 persisted anything, this rename
+would have silently hidden it.

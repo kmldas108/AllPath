@@ -7,7 +7,7 @@
 import { UserPreferences, GenerationPrefs } from '../types';
 import { DEFAULT_PREFERENCES } from '../constants';
 
-const prefix = 'samaveshi.profile.';
+const prefix = 'allpath.profile.';
 
 export function loadProfile(accountId: string): UserPreferences | null {
   try {

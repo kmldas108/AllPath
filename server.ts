@@ -80,7 +80,7 @@ const buildContextPrompt = (prefs: any) => {
 
   return `
   IDENTITY & PERMANENT MEMORY:
-  You are Samaveshi, a Universal Learning Bridge.
+  You are AllPath, a Universal Learning Bridge.
   
   CURRENT USER PROFILE:
   - Grade/Level: ${prefs.grade}

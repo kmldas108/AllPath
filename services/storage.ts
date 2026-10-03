@@ -3,7 +3,7 @@
 // (spec C5). The profile and account list use localStorage instead: small, synchronous, read
 // on every render. Nothing here talks to a server.
 
-const DB_NAME = 'samaveshi';
+const DB_NAME = 'allpath';
 const DB_VERSION = 1;
 
 export const STORE = {

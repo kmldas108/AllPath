@@ -1,4 +1,4 @@
-# Samaveshi — notes for the coding tool
+# AllPath — notes for the coding tool
 
 **What this is.** A multimodal learning aid for learners facing language, disability, or
 comprehension barriers. Four modes (Hear Images, See Sound, Easy Read, Class Pack) send a

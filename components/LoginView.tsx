@@ -55,7 +55,8 @@ const LoginView: React.FC<Props> = ({ onSignedIn }) => {
         aria-label={creating ? 'Create an account' : 'Sign in'}
       >
         <div>
-          <h1 className="text-2xl font-black text-slate-800">Samaveshi</h1>
+          <h1 className="text-2xl font-black text-slate-800">AllPath</h1>
+          <p className="text-sm font-semibold text-purple-700">One lesson, no one left out</p>
           <p className="text-slate-600 mt-1">
             {firstRun
               ? 'Set up the teacher account for this device.'

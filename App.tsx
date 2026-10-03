@@ -232,7 +232,7 @@ const App: React.FC = () => {
       <nav className="flex justify-between items-center p-6 sticky top-0 z-20">
         <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/50 shadow-sm">
           <span className="text-2xl animate-bounce">🎓</span>
-          <h1 className="text-xl font-black text-slate-800 tracking-tight">Samaveshi</h1>
+          <h1 className="text-xl font-black text-slate-800 tracking-tight">AllPath</h1>
         </div>
         <div className="flex items-center gap-3">
              <div className="hidden md:flex items-center gap-2 bg-white/60 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold text-slate-700 border border-white/50 shadow-sm">

@@ -5,8 +5,8 @@
 import { Account, Role } from '../types';
 import { hashPassword, verifyPassword } from './credentials';
 
-const ACCOUNTS_KEY = 'samaveshi.accounts';
-const SESSION_KEY = 'samaveshi.session';
+const ACCOUNTS_KEY = 'allpath.accounts';
+const SESSION_KEY = 'allpath.session';
 
 function read(): Account[] {
   try {

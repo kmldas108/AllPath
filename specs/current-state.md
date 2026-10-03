@@ -1,4 +1,6 @@
-# Samaveshi v2 — what the app does today
+# AllPath v2 — what the app does today
+
+(Shipped as Samaveshi; renamed to AllPath on 2026-10-03.)
 
 Written 2026-10-02, before any v3 change, at commit `eba3f06` on `main`.
 Every claim below was read off the code; file and line references are given so you can check
