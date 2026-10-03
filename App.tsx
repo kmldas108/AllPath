@@ -1,33 +1,64 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppMode, UserPreferences, EducationalContent, UserDisability } from './types';
+import { AppMode, UserPreferences, EducationalContent, UserDisability, Account, ReviewItem, Role } from './types';
 import { DEFAULT_PREFERENCES, APP_MODES, ICONS } from './constants';
 import CameraView from './components/CameraView';
 import ResultView from './components/ResultView';
 import SettingsModal from './components/SettingsModal';
 import OnboardingView from './components/OnboardingView';
 import ClassPackForm from './components/ClassPackForm';
-import { analyzeContent } from './services/geminiService';
+import LoginView from './components/LoginView';
+import ReviewView from './components/ReviewView';
+import { currentAccount, signOut, isTeacher } from './services/accountStore';
+import { loadProfile, saveProfile } from './services/profileStore';
+import { generateForReview } from './services/generateForReview';
+import { releasedItemsFor } from './services/reviewQueue';
 
 const App: React.FC = () => {
-  const [mode, setMode] = useState<AppMode>(AppMode.ONBOARDING);
+  // Who is at the device decides what they can reach (spec 10a). Resolved before the first
+  // screen, from localStorage, with no network call.
+  const [account, setAccount] = useState<Account | null>(() => currentAccount());
+  const [mode, setMode] = useState<AppMode>(AppMode.LOGIN);
   const [activeAnalysisMode, setActiveAnalysisMode] = useState<AppMode>(AppMode.HOME);
   const [prefs, setPrefs] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [content, setContent] = useState<EducationalContent | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  
+  const [released, setReleased] = useState<ReviewItem[]>([]);
+  const [sentForReview, setSentForReview] = useState(false);
+
   // Input State
   const [currentInputSrc, setCurrentInputSrc] = useState<string | null>(null);
   const [currentMimeType, setCurrentMimeType] = useState<string>('');
   const [lastQuizScore, setLastQuizScore] = useState<{ correct: number; total: number } | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
+  // Hydrate the signed-in account's profile from the device (spec A8). v2 kept the profile in
+  // React state only, so it died on reload and onboarding ran again every time.
   useEffect(() => {
-    // Check if user has a name, if so skip onboarding
-    if (prefs.name) {
-        setMode(AppMode.HOME);
+    if (!account) {
+      setMode(AppMode.LOGIN);
+      return;
     }
-  }, []);
+    const stored = loadProfile(account.id);
+    if (stored) {
+      setPrefs(stored);
+      setMode(AppMode.HOME);
+    } else {
+      setPrefs(DEFAULT_PREFERENCES);
+      setMode(AppMode.ONBOARDING);
+    }
+  }, [account?.id]);
+
+  // What this learner is allowed to see: released items only. The learner's screen has no
+  // other source of content, which is what makes C1 hold.
+  const refreshReleased = async (forAccount = account) => {
+    if (!forAccount) return;
+    setReleased(await releasedItemsFor(forAccount.id));
+  };
+
+  useEffect(() => {
+    if (account && !isTeacher(account)) void refreshReleased(account);
+  }, [account?.id, mode]);
 
   useEffect(() => {
     if (mode === AppMode.ANALYZING && prefs.disability === UserDisability.VISUAL) {
@@ -82,7 +113,22 @@ const App: React.FC = () => {
 
   const handleOnboardingComplete = (newPrefs: UserPreferences) => {
       setPrefs(newPrefs);
+      if (account) saveProfile(account.id, newPrefs);
       setMode(AppMode.HOME);
+  };
+
+  const handlePrefsUpdate = (newPrefs: UserPreferences) => {
+      setPrefs(newPrefs);
+      if (account) saveProfile(account.id, newPrefs);
+  };
+
+  const handleSignOut = () => {
+      signOut();
+      setAccount(null);
+      setPrefs(DEFAULT_PREFERENCES);
+      setContent(null);
+      setReleased([]);
+      setMode(AppMode.LOGIN);
   };
 
   const handleModeSelect = (selectedMode: AppMode) => {
@@ -107,11 +153,42 @@ const App: React.FC = () => {
     setCurrentInputSrc(null);
 
     try {
-      const result = await analyzeContent("placeholder", "text-based", AppMode.CLASS_PACK, prefs, data);
-      setContent(result);
-      setMode(AppMode.RESULT);
+      await submitForReview(AppMode.CLASS_PACK, null, "text-based", data);
     } catch (error) {
       alert("Failed to generate Class Pack. Please try again.");
+      setMode(AppMode.HOME);
+    }
+  };
+
+  /**
+   * Generation, for every mode, ends here — in the review queue (spec C1, A18).
+   *
+   * In v2 this function ended with setContent(result); setMode(AppMode.RESULT), which put the
+   * model's output on the learner's screen in the same tick it arrived. Now nothing is shown:
+   * a teacher is sent to the review screen, and a learner is told it has gone for checking.
+   */
+  const submitForReview = async (
+    mode: AppMode,
+    base64Data: string | null,
+    mimeType: string,
+    classPackData?: { subject: string; topic: string; performance: string; parentLanguage: string }
+  ) => {
+    if (!account) return;
+    await generateForReview({
+      mode,
+      mediaBase64: base64Data,
+      mimeType,
+      prefs,
+      // A teacher generating a sample still produces it for a learner's queue; with one
+      // learner account on the device that is this learner, and the teacher reviews it next.
+      learnerAccountId: account.id,
+      classPackData,
+    });
+
+    if (isTeacher(account)) {
+      setMode(AppMode.REVIEW);
+    } else {
+      setSentForReview(true);
       setMode(AppMode.HOME);
     }
   };
@@ -122,9 +199,7 @@ const App: React.FC = () => {
     setCurrentInputSrc(`data:${mimeType};base64,${base64Data}`);
 
     try {
-      const result = await analyzeContent(base64Data, mimeType, activeAnalysisMode, prefs);
-      setContent(result);
-      setMode(AppMode.RESULT);
+      await submitForReview(activeAnalysisMode, base64Data, mimeType);
     } catch (error) {
       alert("Failed to analyze content. Please try again.");
       setMode(AppMode.HOME);
@@ -165,7 +240,23 @@ const App: React.FC = () => {
                 <span className="text-slate-300">|</span>
                 <span className="text-purple-600">{prefs.language}</span>
              </div>
-            <button 
+            {/* Review is a teacher control. A learner account never renders it, and
+                ReviewView is unreachable from the learner's routing (spec A15). */}
+            {isTeacher(account) && (
+              <button
+                onClick={() => setMode(AppMode.REVIEW)}
+                className="px-4 py-3 bg-slate-900 text-white font-bold rounded-full shadow-md active:scale-95"
+              >
+                Review
+              </button>
+            )}
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-3 bg-white text-slate-700 font-bold rounded-full shadow-md active:scale-95 border border-white/50"
+            >
+              Sign out
+            </button>
+            <button
               onClick={() => setShowSettings(true)}
               className="p-3 bg-white hover:bg-white/80 text-slate-800 rounded-full shadow-md hover:shadow-lg transition-all active:scale-95 border border-white/50"
             >
@@ -183,11 +274,44 @@ const App: React.FC = () => {
             <p className="text-slate-600 text-lg font-medium">What magic shall we learn today?</p>
         </div>
 
-        <input 
-            type="file" 
+        {sentForReview && !isTeacher(account) && (
+          <div className="mb-8 w-full max-w-5xl bg-white/80 border-2 border-purple-200 rounded-2xl p-5 text-center">
+            <p className="font-bold text-slate-800">
+              Sent to your teacher to check. It will appear below once they release it.
+            </p>
+          </div>
+        )}
+
+        {!isTeacher(account) && released.length > 0 && (
+          <div className="mb-10 w-full max-w-5xl">
+            <h3 className="text-xl font-black text-slate-800 mb-3">Ready for you</h3>
+            <div className="grid gap-3">
+              {released.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setContent(item.content);
+                    setCurrentInputSrc(null); // the source image was deleted at release (C3)
+                    setCurrentMimeType('');
+                    setMode(AppMode.RESULT);
+                  }}
+                  className="text-left bg-white/80 rounded-2xl p-5 shadow hover:shadow-lg transition-all"
+                >
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                    {item.mode.replace('_', ' ')}
+                  </span>
+                  <p className="font-bold text-slate-800">{item.content.topic}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <input
+            type="file"
             ref={fileInputRef}
             className="hidden"
-            onChange={handleFileUpload} 
+            onChange={handleFileUpload}
         />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
@@ -244,11 +368,26 @@ const App: React.FC = () => {
 
   return (
     <div className="h-full w-full bg-[conic-gradient(at_top_left,_var(--tw-gradient-stops))] from-yellow-50 via-purple-50 to-cyan-50 font-sans selection:bg-purple-200 selection:text-purple-900">
-      {mode === AppMode.ONBOARDING && (
+      {(!account || mode === AppMode.LOGIN) && (
+          <LoginView
+            onSignedIn={(signedIn) => {
+              setSentForReview(false);
+              setAccount(signedIn);
+            }}
+          />
+      )}
+
+      {account && mode === AppMode.ONBOARDING && (
           <OnboardingView prefs={prefs} onComplete={handleOnboardingComplete} />
       )}
 
-      {mode === AppMode.HOME && renderHome()}
+      {account && mode === AppMode.HOME && renderHome()}
+
+      {/* Guarded twice over: the route requires a teacher account, and the control that
+          reaches it is only rendered for one (spec A15). */}
+      {account && isTeacher(account) && mode === AppMode.REVIEW && (
+          <ReviewView onDone={() => setMode(AppMode.HOME)} />
+      )}
       
       {mode === AppMode.CAMERA && (
         <CameraView 
@@ -280,10 +419,10 @@ const App: React.FC = () => {
       )}
 
       {showSettings && (
-        <SettingsModal 
-          prefs={prefs} 
-          onUpdate={setPrefs} 
-          onClose={() => setShowSettings(false)} 
+        <SettingsModal
+          prefs={prefs}
+          onUpdate={handlePrefsUpdate}
+          onClose={() => setShowSettings(false)}
         />
       )}
     </div>

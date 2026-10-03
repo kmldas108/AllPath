@@ -1,0 +1,13 @@
+# Build log
+
+One line a day: what changed, which requirement it was for, what was decided against.
+Two minutes each. This becomes a section of the paper, and it cannot be reconstructed later.
+
+| Date | What changed | For which requirement | Decided against |
+|---|---|---|---|
+| 2026-10-02 | Cloned repo locally; wrote specs/current-state.md, specs/review-spec.md (draft), CLAUDE.md, evals/ scaffold, this log. No code touched. | Build guide Steps 1-4 | Fixing the duplicate components/ tree now — deferred so the thing being measured does not move mid-build (review-spec section 6) |
+| 2026-10-03 | Recorded decisions (Vitest, on-device storage, one shared device with role switch); wrote docs/plan-v3.md for approval. Still no code. | Build guide Step 6 | Real teacher/learner accounts — proposed a local passcode instead, since the guide's out-of-scope list says no accounts and a server-side account would undo C5 |
+| 2026-10-03 | Spec section 10: login in scope (local accounts, hashed, never transmitted), review gate extended to all four modes, output cache added with 6 new criteria. Plan revision 2: T6 replaced, T10 and T11 added, T9 moved last. Still no code. | Build guide Steps 3-6, second pass | A server-side account directory and a shared server-side cache — both would put learner data back on a server against C4/C5; noted as post-evaluation options |
+| 2026-10-03 | Read services/regionalContextMcpServer.ts properly and corrected specs/current-state.md: the MCP tool returns one hardcoded Karnataka/photosynthesis analogy and a near-empty stub for everything else, so the repo has no test that checks behaviour which could come out differently. | Build guide Step 2 (accuracy of the baseline) | Making the MCP server real during the v3 build — it is do-not-touch per C6, and changing it mid-build would move what is being measured |
+| 2026-10-03 | Built T1-T11 on branch v3-review-gate: Vitest harness, per-account profile in localStorage, name stripped from every outbound request, review log with CSV export, review queue with photo deletion on decision, local accounts with PBKDF2 login, review screen with edit and timer, learner view reading released items only, gate extended to all four modes, output cache with eval-mode switch. 49 tests passing, typecheck clean. | Build guide Step 7, spec A1-A9 and A15-A24 | Touching services/mcpClient.ts to fix its 8s MCP timeout — it is in the must-not-change list, so test:bdd is left failing and documented instead |
+| 2026-10-03 | Step 8 deliberate break, twice: removing the release filter failed 9 tests; making a cache hit arrive released failed 2. Both reverted, suite green. Wrote docs/criteria-map.md. | Build guide Step 8 | — |
