@@ -476,7 +476,7 @@ const ResultView: React.FC<ResultViewProps> = ({ content, prefs, onBack, inputSo
         
         {/* Chat Section */}
         <div className="mt-12">
-          <h3 className="text-xl font-black text-slate-700 mb-4 ml-2">Ask Samaveshi</h3>
+          <h3 className="text-xl font-black text-slate-700 mb-4 ml-2">Ask AllPath</h3>
           <div className="bg-white/90 backdrop-blur-md rounded-[2.5rem] border border-white p-2 shadow-lg w-full">
              <div className="space-y-4 mb-4 max-h-60 overflow-y-auto p-4 custom-scrollbar">
                {chatHistory.map((msg, idx) => (
