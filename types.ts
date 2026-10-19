@@ -68,6 +68,8 @@ export interface ReviewItem {
   generatedAt: string;
   decidedAt?: string;
   cacheHit: boolean;
+  /** True when the content is local fallback text rather than model output (spec C11). */
+  fallback: boolean;
   /** True once the source media has been deleted (spec C3). */
   mediaDeleted: boolean;
 }
@@ -82,6 +84,8 @@ export interface ReviewLogRow {
   edited: boolean;
   reviewSeconds: number;
   cacheHit: boolean;
+  /** Whether the reviewed content was local fallback text rather than model output. */
+  fallback: boolean;
 }
 
 export interface QuizQuestion {
@@ -94,6 +98,12 @@ export interface EducationalContent {
   // Common
   mode: AppMode;
   topic: string;
+  /**
+   * Where this content came from (spec C11). "fallback" means the server returned hardcoded
+   * sample text because the live call failed or no key is configured — it did not come from
+   * the model, and must never be reported as though it did.
+   */
+  generationSource?: 'model' | 'fallback';
   
   // Mode 1: Hear Images
   spatialDescription?: string;

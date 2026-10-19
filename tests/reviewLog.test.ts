@@ -64,8 +64,9 @@ describe('test_log_one_row_per_decision (A9)', () => {
 
     const csv = await toCsv();
     expect(csv).not.toContain('Meera');
+    // Row shape per spec section 4, as amended by 10c (cacheHit) and 10e (fallback).
     expect(csv.split('\n')[0]).toBe(
-      'itemId,mode,generatedAt,decidedAt,decision,edited,reviewSeconds,cacheHit'
+      'itemId,mode,generatedAt,decidedAt,decision,edited,reviewSeconds,cacheHit,fallback'
     );
     expect(csv.split('\n')).toHaveLength(2);
   });

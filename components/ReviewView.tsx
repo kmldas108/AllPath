@@ -116,6 +116,19 @@ const ReviewView: React.FC<Props> = ({ onDone }) => {
 
         <section className="bg-white rounded-xl p-4 shadow space-y-4">
           <h2 className="font-bold text-slate-700">What the AI produced — edit before release</h2>
+
+          {/* spec C11. The teacher is the last person who can catch fabricated content before
+              a child sees it, so they are the person who gets told. */}
+          {item.fallback && (
+            <p
+              role="alert"
+              className="border-2 border-amber-400 bg-amber-50 text-amber-900 rounded-lg p-3 font-bold"
+            >
+              This did not come from the AI. The model call failed or no key is configured, so
+              the app is showing built-in sample text. Do not treat it as generated content,
+              and do not use it as evidence.
+            </p>
+          )}
           {draft &&
             editableFields.map(({ key, label }) => (
               <label key={String(key)} className="block">

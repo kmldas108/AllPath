@@ -1,7 +1,7 @@
 # Every criterion against the check that decides it
 
 Build guide Step 8. Written 2026-10-03 from specs/review-spec.md, not from the code.
-Suite: `npm test` — 49 tests, 5 files, all passing. `npm run typecheck` clean.
+Suite: `npm test` — 56 tests, 6 files, all passing. `npm run typecheck` clean.
 
 ## Decided by a test, and passing
 
@@ -26,6 +26,9 @@ Suite: `npm test` — 49 tests, 5 files, all passing. `npm run typecheck` clean.
 | A22 | The cache holds no media and no name | test_cache_holds_no_media | tests/cache.test.ts |
 | A23 | Eval mode calls the model every time | test_cache_off_in_eval_mode | tests/cache.test.ts |
 | A24 | Every log row records cache hit or miss | test_log_records_cache_hit | tests/cache.test.ts |
+| A25 | Fallback content is marked and never cached | test_fallback_is_flagged_and_not_cached | tests/fallback.test.ts |
+| A26 | The log row records fallback, not model output | test_log_records_fallback | tests/fallback.test.ts |
+| A27 | Model output is still marked as model and still cached | test_model_output_is_cached_normally | tests/fallback.test.ts |
 
 ## Decided by a person, not yet done
 
@@ -45,8 +48,11 @@ Run twice on a throwaway copy of services/reviewQueue.ts, then restored.
 2. **Cache bypassing the gate** — a cache hit enqueued as `released` instead of `pending`.
    **2 tests failed**: A20 and A24. The suite caught it.
 
-Both breaks were reverted and the suite is green again. This is the evidence that A1-A24 are
-load-bearing rather than decorative.
+3. **Fabrications cached again** — `generateForReview` stopped excluding fallback content from
+   the cache. **2 tests failed**: both halves of A25. The suite caught it.
+
+All three breaks were reverted and the suite is green again (56 tests). This is the evidence
+that A1-A27 are load-bearing rather than decorative.
 
 ## Gaps, stated plainly
 

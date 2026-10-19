@@ -34,6 +34,7 @@ const COLUMNS: (keyof ReviewLogRow)[] = [
   'edited',
   'reviewSeconds',
   'cacheHit',
+  'fallback',
 ];
 
 /** CSV for the paper's analysis. Download it from Settings; nothing is uploaded. */

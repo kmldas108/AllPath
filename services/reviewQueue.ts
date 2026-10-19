@@ -25,6 +25,7 @@ export async function enqueue(params: {
   content: EducationalContent;
   mediaDataUrl?: string | null;
   cacheHit?: boolean;
+  fallback?: boolean;
 }): Promise<ReviewItem> {
   const content = withFollowUpsOff(params.content);
   const item: ReviewItem = {
@@ -36,6 +37,7 @@ export async function enqueue(params: {
     status: 'pending',
     generatedAt: new Date().toISOString(),
     cacheHit: params.cacheHit ?? false,
+    fallback: params.fallback ?? content.generationSource === 'fallback',
     mediaDeleted: !params.mediaDataUrl,
   };
   await put(STORE.queue, item.id, item);
@@ -98,6 +100,7 @@ async function decide(
     edited,
     reviewSeconds: Math.max(0, Math.round(options.reviewSeconds)),
     cacheHit: decided.cacheHit,
+    fallback: decided.fallback,
   });
   return decided;
 }

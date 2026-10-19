@@ -63,7 +63,12 @@ export async function generateForReview(params: {
       wirePrefs,
       params.classPackData
     );
-    await writeCache(key, content);
+    // Fallback text is never cached (spec C12). A cached fabrication would outlive the
+    // failure that produced it and be served as generated output indefinitely — the next
+    // teacher would have no way of knowing the model was never called.
+    if (content.generationSource !== 'fallback') {
+      await writeCache(key, content);
+    }
     cacheHit = false;
   }
 

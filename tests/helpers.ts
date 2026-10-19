@@ -19,6 +19,7 @@ export const profile = (over: Partial<UserPreferences> = {}): UserPreferences =>
 export const modelOutput = (over: Partial<EducationalContent> = {}): EducationalContent => ({
   mode: AppMode.HEAR_IMAGES,
   topic: 'Photosynthesis',
+  generationSource: 'model',
   spatialDescription: 'A leaf cross-section fills the middle of the page.',
   tactileModelSuggestion: 'Use a flat tamarind leaf and three dried chickpeas.',
   followUpSuggestions: ['What is chlorophyll?', 'Why are leaves green?'],
@@ -46,3 +47,12 @@ export const ALL_MODES = [
   AppMode.EASY_READ,
   AppMode.CLASS_PACK,
 ] as const;
+
+/** What the server returns when the live call failed: hardcoded text, honestly labelled. */
+export const fallbackOutput = (over: Partial<EducationalContent> = {}): EducationalContent =>
+  modelOutput({
+    generationSource: 'fallback',
+    topic: 'Photosynthesis (built-in sample)',
+    spatialDescription: 'Hardcoded sample text that never reached the model.',
+    ...over,
+  });

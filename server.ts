@@ -53,6 +53,10 @@ loadEnv();
 const apiKey = process.env.GEMINI_API_KEY;
 const isApiKeyMock = !apiKey || apiKey === "PLACEHOLDER_API_KEY";
 
+// Measurement mode (spec C13). When an eval run or a teacher session is in progress the server
+// must not fabricate: a failed call has to fail, or the run would quietly score canned text.
+const isMeasuring = process.env.ALLPATH_EVAL_MODE === "1";
+
 
 
 const ai = new GoogleGenAI({
@@ -104,7 +108,9 @@ const buildContextPrompt = (prefs: any) => {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  // Cloud Run and most hosts assign the port through the environment and treat a container
+  // that ignores it as unhealthy. 3000 stays the local default.
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -115,7 +121,23 @@ async function startServer() {
   });
 
   // API Route: Analyze Content
-  app.post("/api/analyze-content", async (req, res) => {
+  // Provenance tagging for everything this route returns (spec C11).
+  //
+  // Applied as a wrapper rather than edited into each return: the canned content is produced
+  // at a dozen different points (the no-key path and the catch, once per mode), and a rule
+  // that has to be remembered at each one is a rule that will be missed at one of them. The
+  // default is "fallback", so a response is only called model output if the live path
+  // explicitly said so.
+  const tagProvenance = (req: any, res: any, next: any) => {
+    const json = res.json.bind(res);
+    res.json = (body: any) =>
+      body && typeof body === "object" && !Array.isArray(body) && !body.error
+        ? json({ generationSource: "fallback", ...body })
+        : json(body);
+    next();
+  };
+
+  app.post("/api/analyze-content", tagProvenance, async (req, res) => {
     const { inputData, mimeType, mode, prefs, subject, topic, performance, parentLanguage } = req.body;
     try {
       if (!inputData || !mimeType || !mode || !prefs) {
@@ -441,9 +463,22 @@ async function startServer() {
 
       const result = JSON.parse(text);
       result.mode = mode;
+      result.generationSource = "model"; // spec C11
       res.json(result);
     } catch (error: any) {
-      console.warn("Live API call failed, using graceful local mock fallback:", error.message || error);
+      console.error(
+        "[analyze-content] LIVE MODEL CALL FAILED. Responding with LOCAL FALLBACK CONTENT, " +
+          "which is hardcoded and did not come from the model:",
+        error.message || error
+      );
+
+      // spec C13: while measuring, fabricating is worse than failing.
+      if (isMeasuring) {
+        return res.status(503).json({
+          error: "Live model call failed and fallback is disabled (ALLPATH_EVAL_MODE=1).",
+          generationSource: "error",
+        });
+      }
 
       try {
         if (mode === "EASY_READ") {

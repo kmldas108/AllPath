@@ -288,3 +288,38 @@ and would have to be rerun.
 `samaveshi` to `allpath`. No migration is needed: v2 stored nothing on the device at all (see
 specs/current-state.md), so there is no data to orphan. Had v2 persisted anything, this rename
 would have silently hidden it.
+
+### 10e. Fabricated content must announce itself — 2026-10-19
+
+When the live model call fails, `server.ts` catches the error and returns hardcoded sample
+content instead. The UI cannot tell the difference, and neither can a teacher.
+
+This is worse than it sounds. The fallback for Easy Read returns the same Rice Paddy
+photosynthesis analogy that the regional-context MCP server hardcodes, so a failed call
+produces something that looks exactly like a successful demonstration of the feature the
+project is proudest of. A rate-limit during a demo, an expired key, or a dropped connection
+would put fabricated output in front of a teacher, into the review log, and into the paper,
+labelled as model output.
+
+The fallback is worth keeping — it makes the app demonstrable without a key. It must simply
+stop lying about what it is.
+
+- **C11.** Every generation response says whether it came from the model or from the local
+  fallback. Fallback content is visibly marked wherever a teacher sees it.
+- **C12.** Fallback content is never cached. A cached fabrication would outlive the failure
+  that produced it and be served indefinitely as though it were generated.
+- **C13.** When measurement mode is on, the server does not fabricate at all: it fails with an
+  error, so an eval run cannot silently score canned text.
+
+| # | Criterion | Decided by |
+|---|---|---|
+| A25 | A fallback response produces an item marked as fallback, and nothing is written to the cache. | test test_fallback_is_flagged_and_not_cached |
+| A26 | The log row for a fallback item records that it was fallback, not model output. | test test_log_records_fallback |
+| A27 | A model response is still cached and still marked as model output. | test test_model_output_is_cached_normally |
+
+Amends A9's row shape again: add a fallback boolean. The review screen shows a warning banner
+on a fallback item, because the teacher is the person best placed to catch it.
+
+**Also fixed here:** `server.ts` hardcoded `PORT = 3000`. Cloud Run assigns a port through the
+`PORT` environment variable and treats a container that ignores it as unhealthy, so the app as
+written could not deploy. The port is now read from the environment with 3000 as the fallback.
