@@ -39,3 +39,45 @@ model version, the date, and the number of repeats.
 
 Case 02 is the gate: if an unsafe tactile-model suggestion can still reach a learner's screen,
 that gets fixed before the Step 11 evaluation runs.
+
+---
+
+## Running them
+
+Three of the eight cases are filled: 03, 07 and 08. All three go through Class Pack, which is
+the text-based mode — no photo or clip needed. The image and audio cases (01, 02, 04, 05, 06)
+need real source material and real expectations, and are deliberately still empty rather than
+filled with something convenient.
+
+**This matters for what the results can claim.** Three text-path cases say nothing about Hear
+Images or See Sound, which are the modes the accessibility argument rests on. Say so when
+reporting.
+
+Start the server in measurement mode, in its own terminal:
+
+```bash
+ALLPATH_EVAL_MODE=1 npm run dev
+```
+
+PowerShell: `$env:ALLPATH_EVAL_MODE=1; npm run dev`
+
+Then:
+
+```bash
+npm run eval
+```
+
+Measurement mode makes the server return 503 rather than hardcoded sample text when a model
+call fails, and the harness aborts if any response is not `generationSource: "model"`. Both
+exist so a run cannot quietly score canned text and produce a reassuring table.
+
+Raw outputs land in `evals/results/` (gitignored — they are run artefacts, and may be large).
+Keep the ones you cite in the write-up somewhere permanent, with the date and the model
+version that the harness records alongside them.
+
+## What the harness can and cannot decide
+
+Code decides the hard-edged parts: a term is present, an amount is exact, a name is absent.
+That is genuinely all it decides. "Would a parent read this as addressed to them" is a
+person's judgement, and case 08 carries the procedure for making it. A count of passed code
+checks is not a quality score, and should never be presented as one.

@@ -1,0 +1,66 @@
+[
+  {
+    "id": "03_passage_term_must_survive",
+    "mode": "CLASS_PACK",
+    "prefs": {
+      "grade": "Grade 6",
+      "language": "Kannada",
+      "location": "Rural Karnataka",
+      "disability": "NONE",
+      "culturalContext": true
+    },
+    "classPackData": {
+      "subject": "Science",
+      "topic": "Transpiration in plants",
+      "performance": "Needs more practice",
+      "parentLanguage": "Kannada"
+    },
+    "checkFields": ["studentNotes"],
+    "mustContain": ["transpiration"],
+    "mustNotContain": [],
+    "humanJudgement": null
+  },
+  {
+    "id": "07_message_date_and_amount",
+    "mode": "CLASS_PACK",
+    "prefs": {
+      "grade": "Grade 6",
+      "language": "Kannada",
+      "location": "Rural Karnataka",
+      "disability": "NONE",
+      "culturalContext": true
+    },
+    "classPackData": {
+      "subject": "Science",
+      "topic": "Field trip to the water treatment plant on 12 November, fee Rs 250",
+      "performance": "Good / understands most of it",
+      "parentLanguage": "Kannada"
+    },
+    "checkFields": ["parentSummary"],
+    "mustContain": ["250"],
+    "mustContainAny": ["12 November", "November 12", "12/11", "12-11", "ನವೆಂಬರ್", "12"],
+    "mustNotContain": [],
+    "humanJudgement": "If the amount passed but the date string did not match, read the message and decide whether the twelfth of November is stated. Record the reading."
+  },
+  {
+    "id": "08_message_addressed_to_parent",
+    "mode": "CLASS_PACK",
+    "prefs": {
+      "grade": "Grade 6",
+      "language": "Kannada",
+      "location": "Rural Karnataka",
+      "disability": "NONE",
+      "culturalContext": true
+    },
+    "classPackData": {
+      "subject": "Science",
+      "topic": "Water cycle",
+      "performance": "Excellent / strong understanding",
+      "parentLanguage": "Kannada"
+    },
+    "checkFields": ["parentSummary"],
+    "mustContain": [],
+    "mustNotContain": ["Meera", "Arun"],
+    "humanJudgement": "Read the message. If a parent read this aloud, would it make sense addressed to them? Pass or fail per run."
+  }
+]
