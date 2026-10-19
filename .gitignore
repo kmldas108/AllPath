@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets. The API key lives here and must never be committed; .env.example is the
+# tracked template. A key in a public repo is a leaked key, however briefly.
+.env
+.env.*
+!.env.example

@@ -11,8 +11,11 @@ Express server in `server.ts`, regional-analogy MCP server in `services/`.
 - `evals/` — test cases for the quality of the model's output (a separate job from tests).
 - `docs/build-log.md` — one line per change, with the requirement it serves.
 
-**How to run things.** `npm run dev` (server + Vite on one port) · `npm test` (BDD runner over
-`features/*.feature`) · needs `GEMINI_API_KEY` in `.env`, else the server serves canned output.
+**How to run things.** `npm run dev` (server + Vite on one port) · `npm test` (Vitest, 49 tests
+against the spec criteria) · `npm run typecheck` · `npm run test:bdd` (the older feature-file
+runner; currently fails on Windows, see `docs/criteria-map.md`) · needs `GEMINI_API_KEY` in
+`.env`, else the server serves canned output and a green screen proves nothing about
+generation. `.env` is gitignored and must stay that way — the repo is public.
 
 **Ask before changing anything not named in the spec.** In particular, do not touch the four
 mode prompts in `server.ts` or `services/regionalContextMcpServer.ts` — they are not part of
