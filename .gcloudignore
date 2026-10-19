@@ -1,0 +1,23 @@
+# What NOT to upload to Cloud Build.
+#
+# gcloud falls back to honouring .gitignore when this file is absent, but relying on that to
+# keep a live API key out of a build context is not a risk worth taking. .env is named here
+# explicitly.
+
+.env
+.env.*
+!.env.example
+
+.git
+.github
+node_modules
+dist
+
+# Research and process material — not needed to run the app.
+specs
+docs
+evals
+tests
+.antigravity
+*.md
+!README.md

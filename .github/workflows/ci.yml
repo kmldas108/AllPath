@@ -1,0 +1,55 @@
+name: CI
+
+# Runs on every pull request, and on main after merge.
+#
+# What this is for: the test suite is what decides the acceptance criteria in
+# specs/review-spec.md, and a suite that only ever runs on one laptop is a suite nobody can
+# trust. A clean checkout on a clean machine is the check — it catches both a broken release
+# gate and the environment-specific breakage that never shows up locally.
+#
+# Two Node versions on purpose. Node 22+ has a built-in localStorage that shadows jsdom's and
+# needs a flag to disable; Node 20 does not have it and rejects the flag. Running both is what
+# proves vitest.config.ts handles that difference rather than assuming it.
+#
+# npm run test:bdd is deliberately not here: it spawns the regional-context MCP server through
+# npx tsx with an 8-second timeout and is flaky on cold start. Those files are in the spec's
+# must-not-change list, so the runner is left alone rather than papered over with a retry.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test

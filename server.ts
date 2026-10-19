@@ -53,6 +53,10 @@ loadEnv();
 const apiKey = process.env.GEMINI_API_KEY;
 const isApiKeyMock = !apiKey || apiKey === "PLACEHOLDER_API_KEY";
 
+// Measurement mode (spec C13). When an eval run or a teacher session is in progress the server
+// must not fabricate: a failed call has to fail, or the run would quietly score canned text.
+const isMeasuring = process.env.ALLPATH_EVAL_MODE === "1";
+
 
 
 const ai = new GoogleGenAI({
@@ -64,7 +68,11 @@ const ai = new GoogleGenAI({
   },
 });
 
-// Helper to generate the "Permanent Memory" context
+// Helper to generate the "Permanent Memory" context.
+//
+// v3, spec C4: the learner's name is never sent to this server, so `prefs` has no name field
+// and the profile block below cannot contain one. The rule added to the adaptation list keeps
+// the model from asking for it or inventing one.
 const buildContextPrompt = (prefs: any) => {
   const lowerGrades = ["Kindergarten", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"];
   let toneInstruction = "Tone: Clear, academic but accessible, supportive. Act like a helpful tutor.";
@@ -76,10 +84,9 @@ const buildContextPrompt = (prefs: any) => {
 
   return `
   IDENTITY & PERMANENT MEMORY:
-  You are Samaveshi, a Universal Learning Bridge.
+  You are AllPath, a Universal Learning Bridge.
   
   CURRENT USER PROFILE:
-  - Name: ${prefs.name}
   - Grade/Level: ${prefs.grade}
   - Native Language: ${prefs.language}
   - Location/Context: ${prefs.location}
@@ -89,7 +96,8 @@ const buildContextPrompt = (prefs: any) => {
   1. LANGUAGE: All output text MUST be in ${prefs.language}. If a term is technical, keep it in English but explain it in ${prefs.language}.
   2. TONE & COMPLEXITY: ${toneInstruction}
   3. CULTURAL CONTEXT: Use analogies and examples relevant to ${prefs.location}.
-  4. ACCESSIBILITY OVERRIDE:
+  4. NAMES: You are not given the learner's name. Address them as "you". Never ask for a name, and never invent one.
+  5. ACCESSIBILITY OVERRIDE:
      ${prefs.disability === "VISUAL" ? "- USER IS BLIND/VISUALLY IMPAIRED. Do not use phrases like 'look at', 'see here'. Describe spatial relationships, textures, and sounds vividly. Focus on 'What is where'." : ""}
      ${prefs.disability === "HEARING" ? "- USER IS DEAF/HARD OF HEARING. Describe sounds visually (e.g., [loud bang], [whispering]). Focus on visual context and emotional expressions." : ""}
      ${prefs.disability === "DYSLEXIA" ? "- USER HAS READING DIFFICULTY. Use bullet points, short sentences, and bold keywords. Avoid dense paragraphs. Use simple sans-serif-friendly formatting." : ""}
@@ -100,7 +108,9 @@ const buildContextPrompt = (prefs: any) => {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  // Cloud Run and most hosts assign the port through the environment and treat a container
+  // that ignores it as unhealthy. 3000 stays the local default.
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -111,7 +121,23 @@ async function startServer() {
   });
 
   // API Route: Analyze Content
-  app.post("/api/analyze-content", async (req, res) => {
+  // Provenance tagging for everything this route returns (spec C11).
+  //
+  // Applied as a wrapper rather than edited into each return: the canned content is produced
+  // at a dozen different points (the no-key path and the catch, once per mode), and a rule
+  // that has to be remembered at each one is a rule that will be missed at one of them. The
+  // default is "fallback", so a response is only called model output if the live path
+  // explicitly said so.
+  const tagProvenance = (req: any, res: any, next: any) => {
+    const json = res.json.bind(res);
+    res.json = (body: any) =>
+      body && typeof body === "object" && !Array.isArray(body) && !body.error
+        ? json({ generationSource: "fallback", ...body })
+        : json(body);
+    next();
+  };
+
+  app.post("/api/analyze-content", tagProvenance, async (req, res) => {
     const { inputData, mimeType, mode, prefs, subject, topic, performance, parentLanguage } = req.body;
     try {
       if (!inputData || !mimeType || !mode || !prefs) {
@@ -437,9 +463,22 @@ async function startServer() {
 
       const result = JSON.parse(text);
       result.mode = mode;
+      result.generationSource = "model"; // spec C11
       res.json(result);
     } catch (error: any) {
-      console.warn("Live API call failed, using graceful local mock fallback:", error.message || error);
+      console.error(
+        "[analyze-content] LIVE MODEL CALL FAILED. Responding with LOCAL FALLBACK CONTENT, " +
+          "which is hardcoded and did not come from the model:",
+        error.message || error
+      );
+
+      // spec C13: while measuring, fabricating is worse than failing.
+      if (isMeasuring) {
+        return res.status(503).json({
+          error: "Live model call failed and fallback is disabled (ALLPATH_EVAL_MODE=1).",
+          generationSource: "error",
+        });
+      }
 
       try {
         if (mode === "EASY_READ") {

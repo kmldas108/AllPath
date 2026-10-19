@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AllPath — how it works</title>
+<meta name="description" content="An interactive walkthrough of AllPath: the parts, one complete journey, where it can go wrong, and what is built versus planned." />
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --panel: #ffffff;
+    --ink: #1c1b1a;
+    --ink-soft: #5c5955;
+    --line: #e4e0da;
+    --accent: #6b4ea8;
+    --accent-soft: #f2edfb;
+    --warn: #8a5a00;
+    --warn-soft: #fdf4e3;
+    --good: #2f6b4f;
+    --good-soft: #eaf5ef;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15161a;
+      --panel: #1d1f24;
+      --ink: #eceaf0;
+      --ink-soft: #a8a4b0;
+      --line: #2e3138;
+      --accent: #b49ae8;
+      --accent-soft: #272233;
+      --warn: #e0b060;
+      --warn-soft: #2e2719;
+      --good: #7fc4a0;
+      --good-soft: #1b2a22;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15161a; --panel: #1d1f24; --ink: #eceaf0; --ink-soft: #a8a4b0;
+    --line: #2e3138; --accent: #b49ae8; --accent-soft: #272233;
+    --warn: #e0b060; --warn-soft: #2e2719; --good: #7fc4a0; --good-soft: #1b2a22;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 16px 96px; }
+  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 4px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.3rem; margin: 48px 0 8px; letter-spacing: -0.01em; }
+  h3 { font-size: 1.05rem; margin: 24px 0 6px; }
+  .tagline { color: var(--accent); font-weight: 600; margin: 0 0 20px; }
+  p { margin: 0 0 14px; }
+  .lede { color: var(--ink-soft); }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px; margin: 14px 0;
+  }
+  .parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
+  .part {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px; cursor: pointer; text-align: left; color: inherit;
+    font: inherit; transition: border-color .15s, transform .15s;
+  }
+  .part:hover, .part:focus-visible { border-color: var(--accent); transform: translateY(-2px); outline: none; }
+  .part[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  .part b { display: block; font-size: .95rem; }
+  .part span { color: var(--ink-soft); font-size: .8rem; }
+  #detail { min-height: 90px; }
+  #detail .where { color: var(--ink-soft); font-size: .85rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  ol.journey { padding-left: 0; list-style: none; counter-reset: s; }
+  ol.journey > li {
+    counter-increment: s; position: relative; padding: 14px 0 14px 46px;
+    border-top: 1px solid var(--line);
+  }
+  ol.journey > li::before {
+    content: counter(s); position: absolute; left: 0; top: 14px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    display: grid; place-items: center; font-weight: 700; font-size: .85rem;
+  }
+  .ai { background: var(--accent-soft); color: var(--accent); font-size: .72rem; font-weight: 700;
+        padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: .04em; }
+  .warn { background: var(--warn-soft); border-left: 3px solid var(--warn); padding: 12px 14px; border-radius: 6px; margin: 12px 0; }
+  .warn strong { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .92rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); }
+  .yes { color: var(--good); font-weight: 700; }
+  .no { color: var(--warn); font-weight: 700; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em;
+         background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+  details { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 10px 0; background: var(--panel); }
+  details summary { cursor: pointer; font-weight: 600; }
+  details[open] summary { margin-bottom: 8px; }
+  .term { border-bottom: 1px dotted var(--accent); cursor: help; }
+  footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: .85rem; }
+  .flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: .85rem; color: var(--ink-soft); margin: 10px 0 0; }
+  .flow span { background: var(--panel); border: 1px solid var(--line); padding: 4px 9px; border-radius: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>AllPath — how it works</h1>
+  <p class="tagline">One lesson, no one left out</p>
+  <p class="lede">
+    A walkthrough of what this project actually does, written to be read by someone who does
+    not build software. Click the parts to open them. Nothing here needs the app to be
+    running, and nothing here is a guess: where a claim comes from a file, the file is named.
+  </p>
+
+  <div class="card">
+    <strong>What the app is for.</strong> A learner meets a wall that has nothing to do with
+    their ability: a diagram they cannot see, a lesson they cannot hear, a passage written for
+    a different reading level, an example from a place they have never been. AllPath takes a
+    photo, a recording or a passage and produces a version adapted for one specific learner.
+    <strong>A teacher checks everything before the learner sees it.</strong> That check is the
+    whole point of this version.
+  </div>
+
+  <h2>The parts</h2>
+  <p>Six pieces. Click any one.</p>
+
+  <div class="parts" id="parts"></div>
+  <div class="card" id="detail">
+    <em class="lede">Pick a part above.</em>
+  </div>
+
+  <h2>One complete journey</h2>
+  <p>
+    A teacher photographs a diagram of the water cycle for a learner who is blind, checks what
+    the AI produced, fixes a word, and releases it. This is the journey the version was built
+    around.
+  </p>
+
+  <ol class="journey">
+    <li>
+      <strong>The teacher signs in.</strong> Teacher and learner share one tablet and have
+      separate accounts. The password is turned into a
+      <span class="term" title="A one-way scramble. You can check a password against it, but you cannot get the password back out of it.">hash</span>
+      on the device and the original is never stored or sent anywhere.
+      <div class="where">components/LoginView.tsx · services/credentials.ts</div>
+    </li>
+    <li>
+      <strong>The learner's profile is read from the device.</strong> Language, grade, region,
+      access need. It never left the tablet. In the previous version the profile was held in
+      memory only and vanished on every reload.
+      <div class="where">services/profileStore.ts</div>
+    </li>
+    <li>
+      <strong>They photograph the diagram.</strong> The photo and the profile go to this
+      project's own server — <strong>without the learner's name</strong>, which is removed
+      before the request is built.
+      <div class="where">services/geminiService.ts</div>
+    </li>
+    <li>
+      <strong>The server asks the AI.</strong> <span class="ai">AI step</span> It builds the
+      instructions — write in Kannada, Grade 6 reading level, this learner cannot see, so
+      describe where things are rather than saying "look at this" — and sends them with the
+      photo to Gemini. For the Easy Read mode it first asks a separate small service for a
+      local analogy.
+      <div class="where">server.ts · services/regionalContextMcpServer.ts</div>
+    </li>
+    <li>
+      <strong>The answer goes into a queue, not onto a screen.</strong> This single step is the
+      version. Previously the answer went straight to the learner's screen the instant it
+      arrived. Now it waits, marked "pending", and the learner's screen can only show items
+      marked "released".
+      <div class="where">services/reviewQueue.ts · services/generateForReview.ts</div>
+    </li>
+    <li>
+      <strong>The teacher reviews it.</strong> Photo on the left, the AI's text on the right and
+      editable. They can release it, fix it and release it, or throw it away. A timer runs from
+      opening the item to the decision.
+      <div class="where">components/ReviewView.tsx</div>
+    </li>
+    <li>
+      <strong>They change "left" to "above" and press Release.</strong> Three things happen at
+      once: the learner's version becomes the teacher's edited text, not the AI's original; the
+      photo is deleted from the device; and one row is written to a log.
+      <div class="where">services/reviewQueue.ts · services/reviewLog.ts</div>
+    </li>
+    <li>
+      <strong>The learner signs in and sees it.</strong> Only released items. Follow-up
+      questions are switched off unless someone turns them on.
+      <div class="where">App.tsx · components/ResultView.tsx</div>
+    </li>
+  </ol>
+
+  <h2>Where the AI helps, and where it does not</h2>
+  <table>
+    <tr><th>Step</th><th>Who does it</th></tr>
+    <tr><td>Reading the photo, writing the description, translating, suggesting a touch model</td><td><span class="ai">AI</span></td></tr>
+    <tr><td>Choosing the local analogy for Easy Read</td><td>A small lookup service, then the AI writes it up</td></tr>
+    <tr><td>Deciding whether the result is fit for a child</td><td><strong>The teacher. Always.</strong></td></tr>
+    <tr><td>Holding the queue, the log, the profile, the accounts</td><td>Ordinary code on the device</td></tr>
+    <tr><td>Deleting the photo, enforcing the release rule</td><td>Ordinary code, checked by 56 tests</td></tr>
+  </table>
+
+  <h2>What happens when something goes wrong</h2>
+  <p>The interesting part of any system. Four failures that matter here.</p>
+
+  <details>
+    <summary>The AI call fails — and this one nearly bit us</summary>
+    <p>
+      If the model cannot be reached, or the key has run out of quota, the server replies with
+      <strong>built-in sample text</strong> so the app still demonstrates. Until recently
+      nothing said so: the sample text for Easy Read is the same rice-paddy analogy the lookup
+      service hardcodes, so a failed call looked exactly like a successful showcase of the
+      feature.
+    </p>
+    <div class="warn">
+      <strong>Why that was dangerous.</strong> A rate limit during a demonstration would have
+      put invented content in front of a teacher, into the log, and into a research paper,
+      labelled as something the AI produced.
+    </div>
+    <p>
+      Now every answer records where it came from. Sample text gets a warning banner on the
+      review screen, is marked in the log, and is never stored in the cache — so a fabrication
+      cannot outlive the failure that produced it. During measurement the server refuses to
+      invent anything at all and simply fails.
+    </p>
+    <div class="where">server.ts · specs/review-spec.md section 10e</div>
+  </details>
+
+  <details>
+    <summary>The same page is photographed twice</summary>
+    <p>
+      The second time, the stored answer is reused instead of paying for the model again. That
+      saves time and money — but the reused answer <strong>still goes through review</strong>.
+      The saving is the AI call, never the teacher's decision.
+    </p>
+    <p>
+      The stored answer is filed under a fingerprint of the photo, the mode, the learner's
+      profile settings, and the AI model's version. Change any of those and it is a different
+      question deserving a fresh answer. The model version is in there for a specific reason:
+      without it, changing the model would silently serve old answers into the comparison a
+      paper would rest on.
+    </p>
+    <p>
+      <strong>And the cache switches off during measurement.</strong> Each test case is meant to
+      run three times, because the AI does not say the same thing twice and one run tells you
+      about one run. A cache returns one answer three times — the variation you are trying to
+      measure would vanish and the numbers would look beautifully consistent and mean nothing.
+    </p>
+    <div class="where">services/outputCache.ts</div>
+  </details>
+
+  <details>
+    <summary>A teacher throws something away</summary>
+    <p>
+      The learner never sees it, the photo is deleted, and the log still records that it
+      happened and that the decision was "discarded". A rejection is evidence too — if
+      teachers discard a third of what the AI produces, that is the most important number in
+      the study.
+    </p>
+  </details>
+
+  <details>
+    <summary>Someone tries to reach the review screen as a learner</summary>
+    <p>
+      They cannot. The control is not drawn for a learner account, and the screen is not
+      reachable by routing either — two separate guards. This is checked by a test that
+      renders the whole app as a learner and asserts the AI's text appears nowhere on the page.
+    </p>
+    <div class="where">App.tsx · tests/roleGate.test.tsx</div>
+  </details>
+
+  <h2>Investigating a result that looks wrong</h2>
+  <p>Suppose a teacher says a description was wrong about the diagram. What can you find out?</p>
+  <div class="card">
+    <p><strong>The log holds, for each decision:</strong> which mode, when it was generated,
+    when it was decided, the decision, whether the teacher edited the text, how many seconds
+    the review took, whether the answer came from the cache, and whether it was built-in
+    sample text rather than AI output. You can export it as a spreadsheet.</p>
+    <p><strong>What the log cannot tell you:</strong> it does not keep the text, the photo, or
+    the prompt. The photo is deleted at the decision by design, and the log carries no
+    learner's name. So the log can tell you <em>that</em> an item was edited and how long it
+    took — it cannot show you <em>what</em> was wrong.</p>
+    <p>That is a deliberate trade of evidence for privacy, and it is worth stating out loud
+    rather than discovering mid-study. If a study needs the text, that is a specification
+    change with a consent question attached, not a small code edit.</p>
+    <div class="where">services/reviewLog.ts</div>
+  </div>
+
+  <h2>Built, or only planned?</h2>
+  <p>Stated plainly, because a walkthrough that blurs this is worse than none.</p>
+  <table>
+    <tr><th>Thing</th><th>Status</th></tr>
+    <tr><td>Four modes, AI generation, adaptation to the profile</td><td class="yes">Built, from the previous version</td></tr>
+    <tr><td>Review queue, review screen, release, discard, edit</td><td class="yes">Built</td></tr>
+    <tr><td>Photo deleted on decision; follow-ups off by default</td><td class="yes">Built</td></tr>
+    <tr><td>Profile and accounts on the device; name never sent</td><td class="yes">Built</td></tr>
+    <tr><td>Review log with timings, cache and sample-text columns</td><td class="yes">Built</td></tr>
+    <tr><td>Answer cache, inert during measurement</td><td class="yes">Built</td></tr>
+    <tr><td>56 automated checks, each tied to a numbered requirement</td><td class="yes">Built</td></tr>
+    <tr><td>Local-analogy service: real protocol, real plumbing</td><td class="yes">Built</td></tr>
+    <tr><td>Local-analogy service: the analogies themselves</td><td class="no">One worked example. Every other input returns a stub.</td></tr>
+    <tr><td>Quality tests of the AI's output</td><td class="no">3 of 8 cases written, all on the text path. Nothing yet for photos or audio.</td></tr>
+    <tr><td>Version number shown on screen</td><td class="no">Not built</td></tr>
+    <tr><td>Teacher study with educators</td><td class="no">Not run</td></tr>
+    <tr><td>Accounts that work across devices</td><td class="no">Out of scope, deliberately — it would put learner records back on a server</td></tr>
+  </table>
+
+  <h2>How we know the checks are worth anything</h2>
+  <p>
+    A test suite that stays green when you break the thing it protects is worth nothing. So the
+    protection was broken on purpose, three times, on a throwaway copy:
+  </p>
+  <table>
+    <tr><th>What was broken</th><th>What happened</th></tr>
+    <tr><td>The learner's screen stopped filtering for released items</td><td><strong>9 checks failed</strong></td></tr>
+    <tr><td>A reused answer arrived already released</td><td><strong>2 checks failed</strong></td></tr>
+    <tr><td>Sample text was allowed into the cache</td><td><strong>2 checks failed</strong></td></tr>
+  </table>
+  <p>Each break was undone afterwards. That is the evidence that the rules are enforced rather than merely described.</p>
+
+  <h2>Check your understanding</h2>
+  <details>
+    <summary>A reused answer comes back from the cache. Does the learner see it straight away?</summary>
+    <p>No. A cache hit saves the AI call, not the teacher's decision — it enters the queue as
+    pending like anything else. Even if an identical item was released last week, this one is
+    a new item and needs its own decision.</p>
+  </details>
+  <details>
+    <summary>Why is the AI model's version part of the cache fingerprint?</summary>
+    <p>So that changing the model cannot serve old answers as if they were new. The study
+    measures one fixed system; a cache that ignored the version would quietly mix two.</p>
+  </details>
+  <details>
+    <summary>A teacher reports a wrong description. Can you see the text they reviewed?</summary>
+    <p>No, and that is by design. The log records that an item was edited, how long review
+    took, and whether it was AI output — but not the text, and the photo was deleted at the
+    decision. Privacy was chosen over evidence here, on purpose.</p>
+  </details>
+
+  <h2>Words used here</h2>
+  <div class="card">
+    <p><strong>Cache</strong> — a store of previous answers, so the same question does not have to be paid for twice.</p>
+    <p><strong>Hash</strong> — a one-way scramble of a password. You can check a guess against it; you cannot recover the password from it.</p>
+    <p><strong>Queue</strong> — a waiting line. Here, work waiting for a person to decide on it.</p>
+    <p><strong>Model / the AI</strong> — Gemini, Google's system that reads the photo and writes the adapted text. It runs on Google's computers, not on the tablet.</p>
+    <p><strong>Protocol</strong> — an agreed way for two programs to talk. The local-analogy service uses a standard one so other tools could call it.</p>
+    <p><strong>Release</strong> — the teacher's act of letting a learner see something. The one door between the AI and a child.</p>
+  </div>
+
+  <footer>
+    AllPath — walkthrough generated from the project's own specifications, build log and code.
+    Every "built" claim above corresponds to code and a passing check in the repository; every
+    "not built" claim is listed as outstanding in <code>docs/criteria-map.md</code>.
+    The app does not need to be running for this page to be read, and this page makes no calls
+    to it.
+  </footer>
+</div>
+
+<script>
+  const PARTS = [
+    { key: 'app', name: 'The app on the tablet', sub: 'What people touch',
+      body: '<p>Runs in the browser. Draws every screen: sign-in, the four modes, the camera, the review screen, the learner\'s view. It decides what a person is allowed to reach — a learner account is never shown the review screen, and cannot route to it.</p><p>It holds no secrets. The key for the AI lives on the server, so it is never sent to a tablet.</p>',
+      where: 'App.tsx · components/' },
+    { key: 'server', name: 'This project\'s server', sub: 'The middle layer',
+      body: '<p>Receives the photo and the profile, writes the instructions for the AI, calls it, and returns the result. It exists so the AI key stays off the tablet, and so the instructions live in one reviewable place.</p><p>It is also where the honesty rule lives: every answer it returns says whether it came from the AI or from built-in sample text.</p>',
+      where: 'server.ts' },
+    { key: 'ai', name: 'Gemini', sub: 'The AI itself',
+      body: '<p>Google\'s system. Reads the photo or passage and writes the adapted version — the description, the translation, the simplified text, the parent message.</p><p>Pinned to one version on purpose. A study measures one system; if the model changed midway the results would describe a mixture and no way to tell which number came from which.</p>',
+      where: 'server.ts, model gemini-2.5-flash' },
+    { key: 'mcp', name: 'The local-analogy service', sub: 'Regional context',
+      body: '<p>A separate small program the server asks for a local comparison — explaining photosynthesis through rice-paddy cycles for a learner in rural Karnataka, for instance. It speaks a standard protocol, so other tools could call it too.</p><p><strong>Being straight about this one:</strong> the plumbing is real and standards-compliant, but the knowledge behind it is a single worked example. Ask it about any other district or concept and it returns a near-empty stub. It is a working interface, not a regional database.</p>',
+      where: 'services/regionalContextMcpServer.ts' },
+    { key: 'queue', name: 'The review queue', sub: 'The gate',
+      body: '<p>Every answer the AI produces lands here, marked pending, and goes no further. The learner\'s screen can only ask for released items — there is no code path from a pending item to a child.</p><p>That is what makes the rule checkable rather than hopeful: one door, and a test that tries to walk through it.</p>',
+      where: 'services/reviewQueue.ts' },
+    { key: 'device', name: 'Storage on the device', sub: 'Nothing leaves',
+      body: '<p>The profile, the accounts, the queue, the log, the cache, and photos awaiting a decision — all on the tablet. No server copy, no sync.</p><p>This is why the learner\'s name can be kept at all: it is held where it is used and never transmitted. A photo lives here only until the teacher decides, then it is deleted.</p>',
+      where: 'services/storage.ts · services/profileStore.ts' },
+  ];
+
+  const grid = document.getElementById('parts');
+  const detail = document.getElementById('detail');
+
+  PARTS.forEach((p) => {
+    const b = document.createElement('button');
+    b.className = 'part';
+    b.type = 'button';
+    b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<b>' + p.name + '</b><span>' + p.sub + '</span>';
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.part').forEach((o) => o.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      detail.innerHTML = '<h3>' + p.name + '</h3>' + p.body + '<div class="where">' + p.where + '</div>';
+    });
+    grid.appendChild(b);
+  });
+</script>
+</body>
+</html>

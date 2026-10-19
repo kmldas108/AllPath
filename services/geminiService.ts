@@ -1,10 +1,26 @@
-import { EducationalContent, UserPreferences, AppMode } from "../types";
+import { EducationalContent, UserPreferences, GenerationPrefs, AppMode } from "../types";
+
+/**
+ * Everything that may go on the wire, listed explicitly (spec C4, A7).
+ *
+ * A type alone will not hold this line: UserPreferences is structurally assignable to
+ * GenerationPrefs, so a caller can hand over the whole profile — name included — and still
+ * typecheck. Building the payload from a whitelist here means the name cannot leave the
+ * device however the caller behaves.
+ */
+const toWirePrefs = (prefs: GenerationPrefs | UserPreferences): GenerationPrefs => ({
+  grade: prefs.grade,
+  language: prefs.language,
+  location: prefs.location,
+  disability: prefs.disability,
+  culturalContext: prefs.culturalContext,
+});
 
 export const analyzeContent = async (
   inputData: string, // Base64 string
   mimeType: string,
   mode: AppMode,
-  prefs: UserPreferences,
+  prefs: GenerationPrefs | UserPreferences,
   classPackData?: {
     subject: string;
     topic: string;
@@ -16,7 +32,13 @@ export const analyzeContent = async (
     const response = await fetch("/api/analyze-content", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inputData, mimeType, mode, prefs, ...classPackData }),
+      body: JSON.stringify({
+        inputData,
+        mimeType,
+        mode,
+        prefs: toWirePrefs(prefs),
+        ...classPackData,
+      }),
     });
 
     if (!response.ok) {
@@ -121,13 +143,19 @@ export const sendChatMessage = async (
   newMessage: string | null,
   audioBase64: string | null,
   context: EducationalContent,
-  prefs: UserPreferences
+  prefs: GenerationPrefs | UserPreferences
 ) => {
   try {
     const response = await fetch("/api/send-chat-message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ history, newMessage, audioBase64, context, prefs }),
+      body: JSON.stringify({
+        history,
+        newMessage,
+        audioBase64,
+        context,
+        prefs: toWirePrefs(prefs),
+      }),
     });
 
     if (!response.ok) {

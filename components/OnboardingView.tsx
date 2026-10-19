@@ -29,7 +29,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ prefs, onComplete }) =>
 
         <div className="text-center mb-8 relative z-10">
             <div className="text-6xl mb-4 animate-bounce inline-block">🎓</div>
-            <h1 className="text-4xl font-black text-slate-800 mb-2 tracking-tight drop-shadow-sm">Samaveshi</h1>
+            <h1 className="text-4xl font-black text-slate-800 mb-2 tracking-tight drop-shadow-sm">AllPath</h1>
             <p className="text-slate-600 text-lg font-medium">Your Magical Learning Bridge! 🌈</p>
         </div>
 
